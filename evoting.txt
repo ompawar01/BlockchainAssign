@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.7.5;
+//pragma solidity ^ 0.7; // This defines the solidity version in which the code
+
+contract Ballot { // contract named ballot
+ // VARIBLES
+ struct vote { // struct = dictionary in solidity
+ address voterAddresss; // used address datatype to store voter address
+ bool choice; // bool value to give the choice of voter
+ }
+ struct voter {
+ string voterName; // string dt used to store name of the voter
+ bool voted; // to check wether the voter voted or not
+ }
+ // some variables to store some values
+ uint private countResult = 0; // private var to count the result
+ uint public finalResult = 0; // public var to display the result
+ uint public totalVoter = 0; // public var to display the total no of voters
+ uint public totalVote = 0; // public var to display no of total votes
+ address public ballotOfficialAddress; // used address datatype to store the sys
+// admin address
+ string public ballotOfficalName; // str used to store name of the ballot
+// official(admin)
+ string public proposal; // proposal for which voting is done
+ mapping(uint => vote) private votes; // mapping integer to vote (like in a
+// dictionary)
+ mapping(address => voter) public voterRegister; // mapping address to the oter
+ enum State { Created, Voting, Ended }
+ // enums keep track of state (data types that restrict the variable to have only one of the predefined values)
+ State public state;
+ // MODIFIER
+ modifier condition(bool _condition) { //modifiers = conditional statements in solidity
+ require(_condition);
+ _;
+ }
+ modifier onlyOfficial() {
+ require(msg.sender == ballotOfficialAddress);
+ // condition set to ensure only official/admin address can send message
+ _;
+ }
+ modifier inState(State _state) {
+ require(state == _state);
+ // condition set to ensure if the global state is matching the passed state
+ _;
+ }
+ // FUNCTION
+ constructor(string memory _ballotofficalName,string memory _proposal) {
+ // created constructor that takes above arguments, underscores are used in parameters to avoid ambiguity
+ // this const enables the admin to register himself as the official using hisaddress and
+ ballotOfficialAddress = msg.sender;
+ ballotOfficalName = _ballotofficalName;
+ proposal = _proposal; // used to create proposal
+ state = State.Created; // used to change state
+ }
+ //function created to add voter takes voter address and name as arguments
+ function addVoter(address _voterAdress, string memory _voterName )
+ public
+ inState(State.Created) // checks whether if someone is registered as anofficial onlyOfficial // specifies that only official can register new voters
+ {
+ voter memory v; // calling struct to create voter record
+ v.voterName = _voterName;
+ v.voted = false; // to specift that new voter hasnt voted
+ voterRegister[_voterAdress] = v;
+ totalVoter++; // to move index of the struct for new record
+ }
+ function startVote() // function created to start voting
+  public
+ inState(State.Created) // the state must be in created state to move to voting state
+ onlyOfficial // only official can change state
+ {
+ state = State.Voting; // changes state from creating to voting state
+ }
+ function doVote(bool _choice) // function created to enable people to vote
+ public
+ inState(State.Voting) // the current function can only be called in voting state
+ returns (bool voted) // returns if the voter has votesd or not
+ {
+ bool isFound = false; // voter can only vote if the his voted state = false
+ if(bytes(voterRegister[msg.sender].voterName).length != 0
+ && voterRegister[msg.sender].voted == false )
+ // to check if the voter has name and has not voted before
+ {
+ voterRegister[msg.sender].voted = true;
+ vote memory v; // to store the voters vote in the struct
+ v.voterAddresss = msg.sender;
+ v.choice = _choice;
+ if(_choice) {
+ countResult++; // increment the result counter
+ }
+ votes[totalVote] = v; //to calculate total number of people who voted
+ totalVote++; // increment vote if voted = true
+ isFound = true;
+ }
+ return isFound;
+ }
+ function endVote() // function created to end voting
+ public
+ inState(State.Voting) // the current function can only be called in voting state
+ onlyOfficial // only official can change state
+ {
+ state = State.Ended; // state changed to ended so voting ends
+ finalResult = countResult; // return the result after voting
+ }
+}
